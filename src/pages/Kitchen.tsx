@@ -1,6 +1,8 @@
 import { Navbar } from "@/components/Navbar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Utensils } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import IngredientsTab from "./kitchen/IngredientsTab"; // Import the new IngredientsTab
+// import RecipesTab from "./kitchen/RecipesTab"; // Will be created later
+// import MenuItemsTab from "./kitchen/MenuItemsTab"; // Will be created later
 
 export default function Kitchen() {
   return (
@@ -13,17 +15,41 @@ export default function Kitchen() {
           <p className="text-muted-foreground">Gerencie ingredientes, receitas e itens de menu</p>
         </div>
 
-        <Card className="shadow-md">
-          <CardContent className="py-12 text-center">
-            <Utensils className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-lg font-medium text-foreground mb-2">
-              Módulo de Cozinha em Desenvolvimento
-            </p>
-            <p className="text-muted-foreground">
-              Esta página será o centro para gerenciar seus ingredientes, criar receitas e definir itens de menu para seus eventos.
-            </p>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="ingredients" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 md:w-fit">
+            <TabsTrigger value="ingredients">Ingredientes</TabsTrigger>
+            <TabsTrigger value="recipes">Receitas</TabsTrigger>
+            <TabsTrigger value="menu-items">Cardápio</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="ingredients" className="mt-6">
+            <IngredientsTab />
+          </TabsContent>
+          
+          <TabsContent value="recipes" className="mt-6">
+            {/* <RecipesTab /> */}
+            <div className="py-12 text-center">
+              <p className="text-lg font-medium text-foreground mb-2">
+                Módulo de Receitas em Desenvolvimento
+              </p>
+              <p className="text-muted-foreground">
+                Esta seção permitirá criar e gerenciar suas receitas.
+              </p>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="menu-items" className="mt-6">
+            {/* <MenuItemsTab /> */}
+            <div className="py-12 text-center">
+              <p className="text-lg font-medium text-foreground mb-2">
+                Módulo de Cardápio em Desenvolvimento
+              </p>
+              <p className="text-muted-foreground">
+                Esta seção permitirá definir os itens finais para venda.
+              </p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
