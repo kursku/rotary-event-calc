@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import IngredientsTab from "./kitchen/IngredientsTab"; // Import the new IngredientsTab
-// import RecipesTab from "./kitchen/RecipesTab"; // Will be created later
+import IngredientsTab from "./kitchen/IngredientsTab";
+import RecipesTab from "./kitchen/RecipesTab"; // Import the new RecipesTab
 // import MenuItemsTab from "./kitchen/MenuItemsTab"; // Will be created later
 
 export default function Kitchen() {
@@ -27,15 +27,7 @@ export default function Kitchen() {
           </TabsContent>
           
           <TabsContent value="recipes" className="mt-6">
-            {/* <RecipesTab /> */}
-            <div className="py-12 text-center">
-              <p className="text-lg font-medium text-foreground mb-2">
-                Módulo de Receitas em Desenvolvimento
-              </p>
-              <p className="text-muted-foreground">
-                Esta seção permitirá criar e gerenciar suas receitas.
-              </p>
-            </div>
+            <RecipesTab />
           </TabsContent>
           
           <TabsContent value="menu-items" className="mt-6">
