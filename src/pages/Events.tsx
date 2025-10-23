@@ -219,7 +219,7 @@ export default function Events() {
                     onValueChange={(value) => setFormData({ ...formData, status: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione um status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="planning">Planejamento</SelectItem>
