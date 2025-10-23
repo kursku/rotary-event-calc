@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Calculator, DollarSign, Calendar, LogOut, Menu } from "lucide-react";
+import { Calculator, DollarSign, Calendar, LogOut, Menu, Utensils } from "lucide-react"; // Added Utensils icon
 import { Link, useLocation } from "react-router-dom";
 import {
   DropdownMenu,
@@ -58,6 +58,15 @@ export const Navbar = () => {
                 Custos Gerais
               </Button>
             </Link>
+            <Link to="/kitchen"> {/* New Kitchen Link */}
+              <Button
+                variant={isActive("/kitchen") ? "default" : "ghost"}
+                className="gap-2"
+              >
+                <Utensils className="h-4 w-4" />
+                Cozinha
+              </Button>
+            </Link>
             <Button
               onClick={() => signOut()}
               variant="ghost"
@@ -93,6 +102,12 @@ export const Navbar = () => {
                   <Link to="/costs" className="flex items-center gap-2 w-full">
                     <DollarSign className="h-4 w-4" />
                     Custos Gerais
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild> {/* New Kitchen Link */}
+                  <Link to="/kitchen" className="flex items-center gap-2 w-full">
+                    <Utensils className="h-4 w-4" />
+                    Cozinha
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => signOut()}>

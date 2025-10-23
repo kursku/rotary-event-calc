@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Events from "./pages/Events";
 import EventCalculator from "./pages/EventCalculator";
 import GeneralCosts from "./pages/GeneralCosts";
+import Kitchen from "./pages/Kitchen"; // Import the new Kitchen page
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <GeneralCosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kitchen"
+            element={
+              <ProtectedRoute>
+                <Kitchen />
               </ProtectedRoute>
             }
           />

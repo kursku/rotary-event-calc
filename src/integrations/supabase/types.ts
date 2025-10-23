@@ -146,6 +146,92 @@ export type Database = {
           },
         ]
       }
+      ingredients: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          unit_cost: number
+          unit_of_measure: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          unit_cost?: number
+          unit_of_measure: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          unit_cost?: number
+          unit_of_measure?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          base_cost: number
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          recipe_id: string | null
+          suggested_price: number
+          user_id: string
+        }
+        Insert: {
+          base_cost?: number
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          recipe_id?: string | null
+          suggested_price?: number
+          user_id: string
+        }
+        Update: {
+          base_cost?: number
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          recipe_id?: string | null
+          suggested_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -169,6 +255,80 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      recipe_ingredients: {
+        Row: {
+          created_at: string | null
+          id: string
+          ingredient_id: string
+          quantity_used: number
+          recipe_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ingredient_id: string
+          quantity_used?: number
+          recipe_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ingredient_id?: string
+          quantity_used?: number
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          calculated_cost: number
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          calculated_cost?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          calculated_cost?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
