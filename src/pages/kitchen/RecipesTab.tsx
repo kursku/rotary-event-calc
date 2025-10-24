@@ -53,6 +53,7 @@ interface Recipe {
   name: string;
   description: string | null;
   calculated_cost: number;
+  yield_quantity: number;
 }
 
 export default function RecipesTab() {
@@ -67,6 +68,7 @@ export default function RecipesTab() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    yield_quantity: "1",
   });
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([]);
   const [newIngredientId, setNewIngredientId] = useState<string>("");
@@ -120,7 +122,7 @@ export default function RecipesTab() {
   }, [user]);
 
   const resetForm = () => {
-    setFormData({ name: "", description: "" });
+    setFormData({ name: "", description: "", yield_quantity: "1" });
     setRecipeIngredients([]);
     setNewIngredientId("");
     setNewIngredientQuantity("1");
@@ -132,12 +134,29 @@ export default function RecipesTab() {
     e.preventDefault();
     if (!user) return;
 
-    const calculated_cost = calculateRecipeCost(recipeIngredients);
+    const yieldQty = parseInt(formData.yield_quantity);
+    if (isNaN(yieldQty) || yieldQty < 1) {
+      toast({
+        title: "Erro",
+        description: "O rendimento deve ser um número inteiro positivo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calcular quantidades unitárias dividindo pelas quantidades totais pelo rendimento
+    const unitaryIngredients = recipeIngredients.map(item => ({
+      ...item,
+      quantity_used: item.quantity_used / yieldQty
+    }));
+
+    const calculated_cost = calculateRecipeCost(unitaryIngredients);
 
     const recipePayload = {
       name: formData.name,
       description: formData.description,
       calculated_cost: calculated_cost,
+      yield_quantity: yieldQty,
       user_id: user.id,
     };
 
@@ -211,8 +230,8 @@ export default function RecipesTab() {
       }
     }
 
-    // Insert new and update existing ingredients
-    for (const item of recipeIngredients) {
+    // Insert new and update existing ingredients (usando quantidades unitárias)
+    for (const item of unitaryIngredients) {
       const ingredientPayload = {
         recipe_id: recipeId,
         ingredient_id: item.ingredient_id,
@@ -256,6 +275,7 @@ export default function RecipesTab() {
     setFormData({
       name: recipe.name,
       description: recipe.description || "",
+      yield_quantity: recipe.yield_quantity.toString(),
     });
     setIsEditing(true);
 
@@ -281,13 +301,14 @@ export default function RecipesTab() {
       });
       setRecipeIngredients([]);
     } else {
+      // Converter quantidades unitárias para quantidades totais para exibição
       const loadedRecipeIngredients: RecipeIngredient[] = data.map((ri: any) => ({
         id: ri.id,
         ingredient_id: ri.ingredients.id,
         name: ri.ingredients.name,
         unit_of_measure: ri.ingredients.unit_of_measure,
         unit_cost: ri.ingredients.unit_cost,
-        quantity_used: ri.quantity_used,
+        quantity_used: ri.quantity_used * recipe.yield_quantity, // Converter para quantidade total
       }));
       setRecipeIngredients(loadedRecipeIngredients);
     }
@@ -367,7 +388,12 @@ export default function RecipesTab() {
     setRecipeIngredients(prev => prev.filter(item => item.ingredient_id !== ingredientId));
   };
 
-  const currentRecipeTotalCost = calculateRecipeCost(recipeIngredients);
+  const yieldQty = parseInt(formData.yield_quantity) || 1;
+  const currentRecipeTotalCost = calculateRecipeCost(recipeIngredients.map(item => ({
+    ...item,
+    quantity_used: item.quantity_used / yieldQty
+  })));
+  const currentRecipeUnitCost = currentRecipeTotalCost;
 
   return (
     <Card className="shadow-md">
@@ -413,8 +439,28 @@ export default function RecipesTab() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="yield_quantity">Rendimento (unidades produzidas)</Label>
+                <Input
+                  id="yield_quantity"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={formData.yield_quantity}
+                  onChange={(e) => setFormData({ ...formData, yield_quantity: e.target.value })}
+                  placeholder="Ex: 40 fatias"
+                  required
+                />
+                <p className="text-sm text-muted-foreground">
+                  Quantas unidades esta receita produz? (ex: 40 fatias, 30 porções)
+                </p>
+              </div>
+
               <div className="space-y-4 border-t pt-4 mt-4">
                 <h3 className="text-lg font-semibold">Ingredientes da Receita</h3>
+                <p className="text-sm text-muted-foreground">
+                  Informe as quantidades TOTAIS necessárias para fazer {formData.yield_quantity} unidade(s)
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="new-ingredient">Ingrediente</Label>
@@ -435,7 +481,7 @@ export default function RecipesTab() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="new-quantity">Quantidade</Label>
+                    <Label htmlFor="new-quantity">Quantidade Total</Label>
                     <Input
                       id="new-quantity"
                       type="number"
@@ -445,6 +491,9 @@ export default function RecipesTab() {
                       onChange={(e) => setNewIngredientQuantity(e.target.value)}
                       placeholder="1"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Para o lote completo
+                    </p>
                   </div>
                 </div>
                 <Button
@@ -456,48 +505,68 @@ export default function RecipesTab() {
                 </Button>
 
                 {recipeIngredients.length > 0 && (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-4">
                     <h4 className="font-medium mb-2">Ingredientes Adicionados:</h4>
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Ingrediente</TableHead>
-                          <TableHead className="text-right">Qtd</TableHead>
+                          <TableHead className="text-right">Qtd Total</TableHead>
+                          <TableHead className="text-right">Qtd/Unid</TableHead>
                           <TableHead className="text-right">Custo Unit.</TableHead>
                           <TableHead className="text-right">Custo Total</TableHead>
                           <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {recipeIngredients.map((item) => (
-                          <TableRow key={item.ingredient_id}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell className="text-right">
-                              {item.quantity_used} {item.unit_of_measure}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              R$ {item.unit_cost.toFixed(2)}
-                            </TableCell>
-                            <TableCell className="text-right font-semibold">
-                              R$ {(item.unit_cost * item.quantity_used).toFixed(2)}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveIngredientFromRecipe(item.ingredient_id)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {recipeIngredients.map((item) => {
+                          const qtyPerUnit = item.quantity_used / yieldQty;
+                          const totalCost = item.unit_cost * qtyPerUnit;
+                          return (
+                            <TableRow key={item.ingredient_id}>
+                              <TableCell>{item.name}</TableCell>
+                              <TableCell className="text-right font-medium">
+                                {item.quantity_used.toFixed(3)} {item.unit_of_measure}
+                              </TableCell>
+                              <TableCell className="text-right text-muted-foreground text-sm">
+                                {qtyPerUnit.toFixed(4)} {item.unit_of_measure}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                R$ {item.unit_cost.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right font-semibold">
+                                R$ {totalCost.toFixed(2)}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveIngredientFromRecipe(item.ingredient_id)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
-                    <div className="flex justify-end mt-4 text-lg font-bold">
-                      Custo Total da Receita: R$ {currentRecipeTotalCost.toFixed(2)}
+                    
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Custo Total do Lote:</span>
+                        <span className="text-lg font-semibold">R$ {(currentRecipeTotalCost * yieldQty).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Rendimento:</span>
+                        <span className="font-medium">{yieldQty} unidade(s)</span>
+                      </div>
+                      <div className="border-t border-primary/20 pt-2 flex justify-between items-center">
+                        <span className="text-lg font-semibold text-primary">Custo por Unidade:</span>
+                        <span className="text-2xl font-bold text-primary">R$ {currentRecipeUnitCost.toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -539,40 +608,52 @@ export default function RecipesTab() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Custo Calculado</TableHead>
+                  <TableHead className="text-right">Rendimento</TableHead>
+                  <TableHead className="text-right">Custo/Unidade</TableHead>
+                  <TableHead className="text-right">Custo Total</TableHead>
                   <TableHead className="w-[100px] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recipes.map((recipe) => (
-                  <TableRow key={recipe.id}>
-                    <TableCell className="font-medium">{recipe.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {recipe.description || "Sem descrição"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      R$ {Number(recipe.calculated_cost || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditClick(recipe)}
-                        className="text-primary hover:text-primary"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(recipe.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {recipes.map((recipe) => {
+                  const totalCost = Number(recipe.calculated_cost || 0) * recipe.yield_quantity;
+                  const unitCost = Number(recipe.calculated_cost || 0);
+                  return (
+                    <TableRow key={recipe.id}>
+                      <TableCell className="font-medium">{recipe.name}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {recipe.description || "Sem descrição"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {recipe.yield_quantity} unid.
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-primary">
+                        R$ {unitCost.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        R$ {totalCost.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditClick(recipe)}
+                          className="text-primary hover:text-primary"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(recipe.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

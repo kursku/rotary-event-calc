@@ -148,7 +148,7 @@ export type Database = {
       }
       ingredients: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           name: string
           unit_cost: number
@@ -156,7 +156,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           name: string
           unit_cost?: number
@@ -164,28 +164,20 @@ export type Database = {
           user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           name?: string
           unit_cost?: number
           unit_of_measure?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "ingredients_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       menu_items: {
         Row: {
           base_cost: number
           category: string | null
-          created_at: string | null
+          created_at: string
           description: string | null
           id: string
           name: string
@@ -196,7 +188,7 @@ export type Database = {
         Insert: {
           base_cost?: number
           category?: string | null
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           name: string
@@ -207,7 +199,7 @@ export type Database = {
         Update: {
           base_cost?: number
           category?: string | null
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           name?: string
@@ -221,13 +213,6 @@ export type Database = {
             columns: ["recipe_id"]
             isOneToOne: false
             referencedRelation: "recipes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "menu_items_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -258,21 +243,21 @@ export type Database = {
       }
       recipe_ingredients: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           ingredient_id: string
           quantity_used: number
           recipe_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           ingredient_id: string
           quantity_used?: number
           recipe_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           ingredient_id?: string
           quantity_used?: number
@@ -298,37 +283,32 @@ export type Database = {
       recipes: {
         Row: {
           calculated_cost: number
-          created_at: string | null
+          created_at: string
           description: string | null
           id: string
           name: string
           user_id: string
+          yield_quantity: number
         }
         Insert: {
           calculated_cost?: number
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           name: string
           user_id: string
+          yield_quantity?: number
         }
         Update: {
           calculated_cost?: number
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           name?: string
           user_id?: string
+          yield_quantity?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "recipes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
