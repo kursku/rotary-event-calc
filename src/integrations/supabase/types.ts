@@ -282,7 +282,6 @@ export type Database = {
       }
       recipes: {
         Row: {
-          calculated_cost: number
           created_at: string
           description: string | null
           id: string
@@ -291,7 +290,6 @@ export type Database = {
           yield_quantity: number
         }
         Insert: {
-          calculated_cost?: number
           created_at?: string
           description?: string | null
           id?: string
@@ -300,7 +298,6 @@ export type Database = {
           yield_quantity?: number
         }
         Update: {
-          calculated_cost?: number
           created_at?: string
           description?: string | null
           id?: string

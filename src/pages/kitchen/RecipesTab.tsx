@@ -23,7 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, BookText, Trash2, Pencil, X } from "lucide-react";
+import { Plus, BookText, Trash2, Pencil } from "lucide-react";
+import QuickIngredientInput from "@/components/kitchen/QuickIngredientInput";
 import {
   Select,
   SelectContent,
@@ -52,8 +53,8 @@ interface Recipe {
   id: string;
   name: string;
   description: string | null;
-  calculated_cost: number;
   yield_quantity: number;
+  calculated_cost?: number; // Calculado dinamicamente
 }
 
 export default function RecipesTab() {
@@ -71,8 +72,6 @@ export default function RecipesTab() {
     yield_quantity: "1",
   });
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredient[]>([]);
-  const [newIngredientId, setNewIngredientId] = useState<string>("");
-  const [newIngredientQuantity, setNewIngredientQuantity] = useState<string>("1");
 
   const calculateRecipeCost = useCallback((ingredients: RecipeIngredient[]) => {
     return ingredients.reduce((total, item) => total + (item.unit_cost * item.quantity_used), 0);
@@ -108,9 +107,33 @@ export default function RecipesTab() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      setRecipes(data || []);
+      setLoading(false);
+      return;
     }
+
+    // Calcular custo dinâmico para cada receita
+    const recipesWithCost = await Promise.all(
+      (data || []).map(async (recipe) => {
+        const { data: ingredients } = await supabase
+          .from("recipe_ingredients")
+          .select(`
+            quantity_used,
+            ingredients (unit_cost)
+          `)
+          .eq("recipe_id", recipe.id);
+
+        const currentCost = (ingredients || []).reduce((sum, item: any) => 
+          sum + (item.quantity_used * item.ingredients.unit_cost), 0
+        );
+
+        return {
+          ...recipe,
+          calculated_cost: currentCost
+        };
+      })
+    );
+
+    setRecipes(recipesWithCost);
     setLoading(false);
   };
 
@@ -124,8 +147,6 @@ export default function RecipesTab() {
   const resetForm = () => {
     setFormData({ name: "", description: "", yield_quantity: "1" });
     setRecipeIngredients([]);
-    setNewIngredientId("");
-    setNewIngredientQuantity("1");
     setCurrentRecipe(null);
     setIsEditing(false);
   };
@@ -144,18 +165,16 @@ export default function RecipesTab() {
       return;
     }
 
-    // Calcular quantidades unitárias dividindo pelas quantidades totais pelo rendimento
+    // Calcular quantidades unitárias dividindo as quantidades totais pelo rendimento
     const unitaryIngredients = recipeIngredients.map(item => ({
       ...item,
       quantity_used: item.quantity_used / yieldQty
     }));
 
-    const calculated_cost = calculateRecipeCost(unitaryIngredients);
-
+    // Não salvamos calculated_cost - será calculado dinamicamente
     const recipePayload = {
       name: formData.name,
       description: formData.description,
-      calculated_cost: calculated_cost,
       yield_quantity: yieldQty,
       user_id: user.id,
     };
@@ -336,57 +355,6 @@ export default function RecipesTab() {
     }
   };
 
-  const handleAddIngredientToRecipe = () => {
-    if (!newIngredientId || !newIngredientQuantity) {
-      toast({
-        title: "Erro",
-        description: "Selecione um ingrediente e insira uma quantidade.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const ingredient = availableIngredients.find(ing => ing.id === newIngredientId);
-    if (ingredient) {
-      const quantity = parseFloat(newIngredientQuantity);
-      if (isNaN(quantity) || quantity <= 0) {
-        toast({
-          title: "Erro",
-          description: "A quantidade deve ser um número positivo.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if ingredient already exists in recipeIngredients
-      const existingIndex = recipeIngredients.findIndex(ri => ri.ingredient_id === newIngredientId);
-      if (existingIndex > -1) {
-        // Update existing ingredient quantity
-        const updatedIngredients = [...recipeIngredients];
-        updatedIngredients[existingIndex].quantity_used = quantity;
-        setRecipeIngredients(updatedIngredients);
-      } else {
-        // Add new ingredient
-        setRecipeIngredients(prev => [
-          ...prev,
-          {
-            ingredient_id: ingredient.id,
-            name: ingredient.name,
-            unit_of_measure: ingredient.unit_of_measure,
-            unit_cost: ingredient.unit_cost,
-            quantity_used: quantity,
-          },
-        ]);
-      }
-
-      setNewIngredientId("");
-      setNewIngredientQuantity("1");
-    }
-  };
-
-  const handleRemoveIngredientFromRecipe = (ingredientId: string) => {
-    setRecipeIngredients(prev => prev.filter(item => item.ingredient_id !== ingredientId));
-  };
 
   const yieldQty = parseInt(formData.yield_quantity) || 1;
   const currentRecipeTotalCost = calculateRecipeCost(recipeIngredients.map(item => ({
@@ -461,112 +429,27 @@ export default function RecipesTab() {
                 <p className="text-sm text-muted-foreground">
                   Informe as quantidades TOTAIS necessárias para fazer {formData.yield_quantity} unidade(s)
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="new-ingredient">Ingrediente</Label>
-                    <Select
-                      value={newIngredientId}
-                      onValueChange={setNewIngredientId}
-                    >
-                      <SelectTrigger id="new-ingredient">
-                        <SelectValue placeholder="Selecione um ingrediente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableIngredients.map((ingredient) => (
-                          <SelectItem key={ingredient.id} value={ingredient.id}>
-                            {ingredient.name} ({ingredient.unit_of_measure})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-quantity">Quantidade Total</Label>
-                    <Input
-                      id="new-quantity"
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      value={newIngredientQuantity}
-                      onChange={(e) => setNewIngredientQuantity(e.target.value)}
-                      placeholder="1"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Para o lote completo
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  onClick={handleAddIngredientToRecipe}
-                  className="w-full bg-secondary hover:opacity-90 text-secondary-foreground"
-                >
-                  Adicionar Ingrediente
-                </Button>
+
+                <QuickIngredientInput
+                  availableIngredients={availableIngredients}
+                  recipeIngredients={recipeIngredients}
+                  onIngredientsChange={setRecipeIngredients}
+                  yieldQuantity={yieldQty}
+                />
 
                 {recipeIngredients.length > 0 && (
-                  <div className="mt-4 space-y-4">
-                    <h4 className="font-medium mb-2">Ingredientes Adicionados:</h4>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Ingrediente</TableHead>
-                          <TableHead className="text-right">Qtd Total</TableHead>
-                          <TableHead className="text-right">Qtd/Unid</TableHead>
-                          <TableHead className="text-right">Custo Unit.</TableHead>
-                          <TableHead className="text-right">Custo Total</TableHead>
-                          <TableHead className="w-[50px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recipeIngredients.map((item) => {
-                          const qtyPerUnit = item.quantity_used / yieldQty;
-                          const totalCost = item.unit_cost * qtyPerUnit;
-                          return (
-                            <TableRow key={item.ingredient_id}>
-                              <TableCell>{item.name}</TableCell>
-                              <TableCell className="text-right font-medium">
-                                {item.quantity_used.toFixed(3)} {item.unit_of_measure}
-                              </TableCell>
-                              <TableCell className="text-right text-muted-foreground text-sm">
-                                {qtyPerUnit.toFixed(4)} {item.unit_of_measure}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                R$ {item.unit_cost.toFixed(2)}
-                              </TableCell>
-                              <TableCell className="text-right font-semibold">
-                                R$ {totalCost.toFixed(2)}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoveIngredientFromRecipe(item.ingredient_id)}
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                    
-                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Custo Total do Lote:</span>
-                        <span className="text-lg font-semibold">R$ {(currentRecipeTotalCost * yieldQty).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Rendimento:</span>
-                        <span className="font-medium">{yieldQty} unidade(s)</span>
-                      </div>
-                      <div className="border-t border-primary/20 pt-2 flex justify-between items-center">
-                        <span className="text-lg font-semibold text-primary">Custo por Unidade:</span>
-                        <span className="text-2xl font-bold text-primary">R$ {currentRecipeUnitCost.toFixed(2)}</span>
-                      </div>
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Custo Total do Lote:</span>
+                      <span className="text-lg font-semibold">R$ {(currentRecipeTotalCost * yieldQty).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Rendimento:</span>
+                      <span className="font-medium">{yieldQty} unidade(s)</span>
+                    </div>
+                    <div className="border-t border-primary/20 pt-2 flex justify-between items-center">
+                      <span className="text-lg font-semibold text-primary">Custo por Unidade:</span>
+                      <span className="text-2xl font-bold text-primary">R$ {currentRecipeUnitCost.toFixed(2)}</span>
                     </div>
                   </div>
                 )}
